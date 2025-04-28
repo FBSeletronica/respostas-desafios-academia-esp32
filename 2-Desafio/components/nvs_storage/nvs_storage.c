@@ -27,7 +27,6 @@ bool nvs_storage_save_alarm(const alarm_t *alarm)
         return false;
     }
 
-    // Primeiro carrega a lista atual
     alarm_t alarms[MAX_ALARMS];
     size_t required_size = sizeof(alarms);
     err = nvs_get_blob(handle, KEY, alarms, &required_size);
@@ -39,7 +38,6 @@ bool nvs_storage_save_alarm(const alarm_t *alarm)
         return false;
     }
 
-    // Adiciona o novo alarme
     alarms[num_alarms] = *alarm;
     num_alarms++;
 

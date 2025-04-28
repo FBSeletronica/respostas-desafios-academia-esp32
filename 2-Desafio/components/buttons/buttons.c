@@ -1,92 +1,53 @@
 #include "buttons.h"
-#include "driver/gpio.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#include <stdbool.h>
+#include "driver/gpio.h"
 
-#define DEBOUNCE_DELAY_MS 30
+#define DEBOUNCE_TIME_MS 50
 
-// Armazena o último tempo de pressionamento para cada botão
-static uint32_t last_press_tick[GPIO_NUM_MAX] = {0};
+typedef struct {
+    gpio_num_t gpio;
+    bool last_state;
+    uint32_t last_change_time;
+} button_t;
+
+static button_t buttons[] = {
+    { BUTTON_1, true, 0 },
+    { BUTTON_2, true, 0 },
+    { BUTTON_3, true, 0 },
+    { BUTTON_4, true, 0 },
+    { BUTTON_5, true, 0 },
+    { BUTTON_6, true, 0 }
+};
 
 void buttons_init(void)
 {
-    gpio_config_t io_conf = {
-        .intr_type = GPIO_INTR_DISABLE,
-        .mode = GPIO_MODE_INPUT,
-        .pin_bit_mask =
-            (1ULL << BUTTON_1) |
-            (1ULL << BUTTON_2) |
-            (1ULL << BUTTON_3) |
-            (1ULL << BUTTON_4) |
-            (1ULL << BUTTON_5) |
-            (1ULL << BUTTON_6),
-        .pull_up_en = GPIO_PULLUP_ENABLE,
-        .pull_down_en = GPIO_PULLDOWN_DISABLE,
-    };
-    gpio_config(&io_conf);
+    for (int i = 0; i < sizeof(buttons)/sizeof(buttons[0]); i++) {
+        gpio_set_direction(buttons[i].gpio, GPIO_MODE_INPUT);
+        gpio_set_pull_mode(buttons[i].gpio, GPIO_PULLUP_ONLY);
+    }
 }
 
-static bool button_debounced(gpio_num_t button)
+static bool is_button_pressed(button_t *button)
 {
-    bool pressed = (gpio_get_level(button) == 0);
+    bool current_state = gpio_get_level(button->gpio);
+    uint32_t now = xTaskGetTickCount() * portTICK_PERIOD_MS;
 
-    if (pressed) {
-        uint32_t now = xTaskGetTickCount() * portTICK_PERIOD_MS;
-        if ((now - last_press_tick[button]) > DEBOUNCE_DELAY_MS) {
-            last_press_tick[button] = now;
-            return true;
+    if (current_state != button->last_state) {
+        if ((now - button->last_change_time) > DEBOUNCE_TIME_MS) {
+            button->last_state = current_state;
+            button->last_change_time = now;
+            if (current_state == 0) {
+                return true;                // Botão pressionado (ativo em LOW)
+            }
         }
     }
     return false;
 }
 
-// Funções públicas para cada botão:
-
-bool button_up_pressed(void)
-{
-    return button_debounced(BUTTON_1);
-}
-
-bool button_left_pressed(void)
-{
-    return button_debounced(BUTTON_2);
-}
-
-bool button_right_pressed(void)
-{
-    return button_debounced(BUTTON_3);
-}
-
-bool button_down_pressed(void)
-{
-    return button_debounced(BUTTON_4);
-}
-
-bool button_enter_pressed(void)
-{
-    return button_debounced(BUTTON_5);
-}
-
-bool button_emergency_pressed(void)
-{
-    return button_debounced(BUTTON_6);
-}
-
-
-void wait_for_button_release(gpio_num_t button)
-{
-    TickType_t start_tick = xTaskGetTickCount();
-    const TickType_t timeout_ticks = pdMS_TO_TICKS(2000); // 2 segundos de timeout máximo
-    const TickType_t check_interval = pdMS_TO_TICKS(10);  // Verificar a cada 10ms
-
-    while (gpio_get_level(button) == 0)
-    {
-        vTaskDelay(check_interval);
-
-        // Se passou o tempo máximo de espera, sai da função
-        if ((xTaskGetTickCount() - start_tick) > timeout_ticks) {
-            break;
-        }
-    }
-}
+bool button_up_pressed(void)       { return is_button_pressed(&buttons[0]); }
+bool button_left_pressed(void)     { return is_button_pressed(&buttons[1]); }
+bool button_right_pressed(void)    { return is_button_pressed(&buttons[2]); }
+bool button_down_pressed(void)     { return is_button_pressed(&buttons[3]); }
+bool button_enter_pressed(void)    { return is_button_pressed(&buttons[4]); }
+bool button_emergency_pressed(void){ return is_button_pressed(&buttons[5]); }

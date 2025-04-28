@@ -9,7 +9,7 @@ static const char *TAG = "WIFI_MANAGER";
 static wifi_connected_callback_t wifi_connected_cb = NULL;
 static bool is_connected = false;
 
-#define WIFI_SSID      "Newnes"    // <-- Trocar depois na interface Web
+#define WIFI_SSID      "Newnes"   
 #define WIFI_PASSWORD  "9tfNJCky#d933LzR%F"
 
 static void wifi_event_handler(void* arg, esp_event_base_t event_base,

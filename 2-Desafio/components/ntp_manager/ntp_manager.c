@@ -19,7 +19,7 @@ void ntp_manager_start(void)
     setenv("TZ", "America/Sao_Paulo", 1);
     tzset();
     esp_sntp_setoperatingmode(SNTP_OPMODE_POLL);
-    esp_sntp_setservername(0, "pool.ntp.org"); // Pode mudar o servidor se quiser
+    esp_sntp_setservername(0, "pool.ntp.org"); 
     esp_sntp_set_time_sync_notification_cb(time_sync_notification_cb);
     esp_sntp_init();
 }

@@ -37,7 +37,7 @@ static void check_alarms(void)
     }
 
     if (now.tm_min == last_triggered_minute) {
-        // Já tocamos esse minuto, evita múltiplos disparos
+        
         return;
     }
 
@@ -51,13 +51,12 @@ static void check_alarms(void)
             ESP_LOGI(TAG, "Alarme encontrado! Executando...");
 
             buzzer_play_melody((buzzer_melody_t)alarm_list[i].melody);
-            led_rgb_set_color(0, 255, 0); // Verde para indicar execução
+            led_rgb_set_color(0, 255, 0); 
             vTaskDelay(pdMS_TO_TICKS(1000));
             led_rgb_set_color(0, 0, 0);
 
-            // Marca que esse minuto já foi tratado
             last_triggered_minute = now.tm_min;
-            return; // Evita tocar múltiplos alarmes no mesmo minuto
+            return; 
         }
     }
 }
@@ -74,17 +73,12 @@ void alarm_manager_init(void)
 {
     ESP_LOGI(TAG, "Inicializando Alarm Manager...");
 
-    // Carregar alarmes da NVS
     num_alarms = nvs_storage_load_alarms(alarm_list, MAX_ALARMS);
     ESP_LOGI(TAG, "Carregados %d alarmes.", num_alarms);
 
-    // Criar a tarefa de monitoramento
     xTaskCreate(alarm_manager_task, "alarm_manager_task", 4096, NULL, 5, NULL);
 }
 
-// ------------------
-// Funções públicas para integração
-// ------------------
 
 bool alarm_manager_is_enabled(void)
 {

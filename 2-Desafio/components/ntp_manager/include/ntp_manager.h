@@ -1,7 +1,7 @@
 #pragma once
 
 #include <stdbool.h>
-#include <time.h>  // <-- ADICIONAR ESTA LINHA AQUI
+#include <time.h> 
 
 typedef void (*wifi_connected_callback_t)(void);
 

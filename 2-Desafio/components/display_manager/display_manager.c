@@ -9,15 +9,7 @@
 
 static SSD1306_t dev;
 
-// Estado atual da aplicação
-typedef enum {
-    SCREEN_MAIN,
-    SCREEN_MENU,
-    SCREEN_ALARMS,
-    SCREEN_EMERGENCY
-} screen_t;
 
-// Controle de atualização para reduzir flicker
 static char current_time_text[9] = {0};
 static bool current_alarm_status = false;
 static screen_t current_screen = SCREEN_MAIN;
@@ -27,9 +19,12 @@ static int last_menu_index = -1;
 static int alarm_list_index = 0;
 static int last_alarm_list_index = -1;
 
+static bool force_screen_update = true;
+static bool force_menu_update = true;
+static bool force_alarm_list_update = true;
+
 void display_manager_init(void)
 {
-    // A inicialização do display foi feita externamente
     ssd1306_clear_screen(&dev, false);
 }
 
@@ -48,7 +43,7 @@ void display_manager_update(void)
 
         bool alarm_on = alarm_manager_is_enabled();
 
-        if (strcmp(current_time_text, new_time_text) != 0 || current_alarm_status != alarm_on || last_screen_displayed != SCREEN_MAIN) {
+        if (strcmp(current_time_text, new_time_text) != 0 || current_alarm_status != alarm_on || force_screen_update) {
             ssd1306_clear_screen(&dev, false);
             ssd1306_display_text(&dev, 2, new_time_text, strlen(new_time_text), false);
 
@@ -57,11 +52,12 @@ void display_manager_update(void)
 
             strcpy(current_time_text, new_time_text);
             current_alarm_status = alarm_on;
+            force_screen_update = false;
             last_screen_displayed = SCREEN_MAIN;
         }
     }
     else if (current_screen == SCREEN_MENU) {
-        if (last_screen_displayed != SCREEN_MENU || last_menu_index != menu_index) {
+        if (force_screen_update || force_menu_update) {
             ssd1306_clear_screen(&dev, false);
 
             if (menu_index == 0) {
@@ -70,12 +66,13 @@ void display_manager_update(void)
                 ssd1306_display_text(&dev, 2, "> Voltar", strlen("> Voltar"), false);
             }
 
+            force_screen_update = false;
+            force_menu_update = false;
             last_screen_displayed = SCREEN_MENU;
-            last_menu_index = menu_index;
         }
     }
     else if (current_screen == SCREEN_ALARMS) {
-        if (last_screen_displayed != SCREEN_ALARMS || last_alarm_list_index != alarm_list_index) {
+        if (force_screen_update || force_alarm_list_update) {
             ssd1306_clear_screen(&dev, false);
 
             alarm_t alarm;
@@ -87,134 +84,106 @@ void display_manager_update(void)
                 ssd1306_display_text(&dev, 2, "Sem alarmes", strlen("Sem alarmes"), false);
             }
 
+            force_screen_update = false;
+            force_alarm_list_update = false;
             last_screen_displayed = SCREEN_ALARMS;
-            last_alarm_list_index = alarm_list_index;
         }
     }
     else if (current_screen == SCREEN_EMERGENCY) {
-        if (last_screen_displayed != SCREEN_EMERGENCY) {
+        if (force_screen_update) {
             ssd1306_clear_screen(&dev, true);
             ssd1306_display_text(&dev, 3, "!!! EMERGENCIA !!!", strlen("!!! EMERGENCIA !!!"), true);
+            force_screen_update = false;
             last_screen_displayed = SCREEN_EMERGENCY;
         }
     }
 }
 
-void display_manager_set_screen(screen_t screen)
-{
-    current_screen = screen;
-    last_screen_displayed = -1; // Força redesenho completo
-}
-
-screen_t display_manager_get_screen(void)
-{
-    return current_screen;
-}
-
-void display_manager_next_menu(void)
-{
-    menu_index = (menu_index + 1) % 2;
-}
-
-void display_manager_prev_menu(void)
-{
-    menu_index = (menu_index == 0) ? 1 : (menu_index - 1);
-}
-
-void display_manager_next_alarm(void)
-{
-    if (alarm_list_index < (alarm_manager_count() - 1)) {
-        alarm_list_index++;
-    }
-}
-
-void display_manager_prev_alarm(void)
-{
-    if (alarm_list_index > 0) {
-        alarm_list_index--;
-    }
-}
-
-void display_manager_reset_navigation(void)
-{
-    menu_index = 0;
-    alarm_list_index = 0;
-}
-
-
 void display_manager_handle_buttons(void)
 {
-    if (button_emergency_pressed()) {
+    static bool emergency_pressed = false;
+
+    if (button_emergency_pressed() && !emergency_pressed) {
+        emergency_pressed = true;
         current_screen = SCREEN_EMERGENCY;
-        last_screen_displayed = -1; // Força atualização!
         buzzer_start_melody(BUZZER_MELODY_EMERGENCY, 10000);
-        return;
+        force_screen_update = true;
+    }
+    if (!button_emergency_pressed()) {
+        emergency_pressed = false;
     }
 
     switch (current_screen)
     {
         case SCREEN_MAIN:
             if (button_enter_pressed()) {
+                buzzer_start_melody(BUZZER_MELODY_NORMAL, 100);
                 current_screen = SCREEN_MENU;
-                last_screen_displayed = -1; // Força redesenhar
+                force_screen_update = true;
             }
             break;
 
         case SCREEN_MENU:
             if (button_down_pressed()) {
+                buzzer_start_melody(BUZZER_MELODY_NORMAL, 100);
                 menu_index = (menu_index + 1) % 2;
-                last_menu_index = -1; // Força redesenhar opção
+                force_menu_update = true;
             }
 
             if (button_up_pressed()) {
+                buzzer_start_melody(BUZZER_MELODY_NORMAL, 100);
                 menu_index = (menu_index == 0) ? 1 : (menu_index - 1);
-                last_menu_index = -1; // Força redesenhar opção
+                force_menu_update = true;
             }
 
             if (button_enter_pressed()) {
+                buzzer_start_melody(BUZZER_MELODY_NORMAL, 100);
                 if (menu_index == 0) {
                     current_screen = SCREEN_ALARMS;
                     alarm_list_index = 0;
-                    last_screen_displayed = -1; // Força redesenhar
-                }
-                else if (menu_index == 1) {
+                } else {
                     current_screen = SCREEN_MAIN;
-                    last_screen_displayed = -1; // Força redesenhar
                 }
+                force_screen_update = true;
             }
 
             if (button_left_pressed()) {
+                buzzer_start_melody(BUZZER_MELODY_NORMAL, 100);
                 current_screen = SCREEN_MAIN;
-                last_screen_displayed = -1;
+                force_screen_update = true;
             }
             break;
 
         case SCREEN_ALARMS:
             if (button_down_pressed()) {
+                buzzer_start_melody(BUZZER_MELODY_NORMAL, 100);
                 if (alarm_list_index < (alarm_manager_count() - 1)) {
                     alarm_list_index++;
-                    last_alarm_list_index = -1;
+                    force_alarm_list_update = true;
                 }
             }
 
             if (button_up_pressed()) {
+                buzzer_start_melody(BUZZER_MELODY_NORMAL, 100);
                 if (alarm_list_index > 0) {
                     alarm_list_index--;
-                    last_alarm_list_index = -1;
+                    force_alarm_list_update = true;
                 }
             }
 
             if (button_left_pressed() || button_enter_pressed()) {
+                buzzer_start_melody(BUZZER_MELODY_NORMAL, 100);
                 current_screen = SCREEN_MENU;
-                last_screen_displayed = -1;
+                force_screen_update = true;
             }
             break;
 
         case SCREEN_EMERGENCY:
             if (button_enter_pressed() || button_left_pressed()) {
+                buzzer_start_melody(BUZZER_MELODY_NORMAL, 100);
                 current_screen = SCREEN_MAIN;
-                last_screen_displayed = -1;
                 buzzer_stop();
+                force_screen_update = true;
             }
             break;
 
@@ -222,5 +191,3 @@ void display_manager_handle_buttons(void)
             break;
     }
 }
-
-

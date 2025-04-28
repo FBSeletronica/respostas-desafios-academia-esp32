@@ -34,7 +34,7 @@ static const note_t melody_special[] = {
     { 600, 200 }, { 800, 200 }, { 1000, 200 }, { 1200, 400 }, { -1, 0 }
 };
 
-// Controle de execução
+
 static TaskHandle_t buzzer_task_handle = NULL;
 static volatile bool buzzer_stop_requested = false;
 
@@ -77,7 +77,7 @@ static void buzzer_play_note(int freq_hz, int duration_ms)
     vTaskDelay(pdMS_TO_TICKS(duration_ms));
 }
 
-// 🔥 Task do Buzzer (agora corrigida)
+
 static void buzzer_task(void *pvParameter)
 {
     buzzer_task_param_t *param = (buzzer_task_param_t *) pvParameter;
@@ -105,26 +105,26 @@ static void buzzer_task(void *pvParameter)
         }
     }
 
-    // Garante parar o som no final
+
     ledc_set_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0, 0);
     ledc_update_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0);
 
     buzzer_task_handle = NULL;
-    free(param); // Libera memória alocada
+    free(param); 
     vTaskDelete(NULL);
 }
 
-// API para tocar melodia tradicional (sem tempo definido)
+
 void buzzer_play_melody(buzzer_melody_t melody_id)
 {
-    buzzer_start_melody(melody_id, 5000); // 5 segundos padrão, ou escolha outro tempo
+    buzzer_start_melody(melody_id, 5000); 
 }
 
-// API para tocar melodia com duração controlada
+
 void buzzer_start_melody(buzzer_melody_t melody_id, uint32_t duration_ms)
 {
     if (buzzer_task_handle != NULL) {
-        return; // Já tem buzzer tocando
+        return; 
     }
 
     buzzer_stop_requested = false;
@@ -140,7 +140,7 @@ void buzzer_start_melody(buzzer_melody_t melody_id, uint32_t duration_ms)
     xTaskCreatePinnedToCore(buzzer_task, "buzzer_task", 2048, param, 5, &buzzer_task_handle, tskNO_AFFINITY);
 }
 
-// API para parar o buzzer
+
 void buzzer_stop(void)
 {
     buzzer_stop_requested = true;

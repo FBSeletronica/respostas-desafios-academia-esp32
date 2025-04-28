@@ -90,7 +90,7 @@ static esp_err_t root_get_handler(httpd_req_t *req)
         httpd_resp_send_chunk(req, buffer, read_bytes);
     }
     fclose(f);
-    httpd_resp_send_chunk(req, NULL, 0); // Indicar fim da resposta
+    httpd_resp_send_chunk(req, NULL, 0); 
     return ESP_OK;
 }
 
