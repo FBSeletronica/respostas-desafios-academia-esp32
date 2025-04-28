@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Gerenciador de Alarmes - ESP32</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+    th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
+    th { background-color: #f2f2f2; }
+    input, select { margin: 5px; padding: 5px; }
+    button { padding: 8px 12px; margin-top: 10px; }
+  </style>
+</head>
+<body>
+
+<h1>Gerenciador de Alarmes - ESP32</h1>
+
+<h2>Adicionar Novo Alarme</h2>
+<form id="add-alarm-form">
+  Hora: <input type="number" id="hour" min="0" max="23" required>
+  Minuto: <input type="number" id="minute" min="0" max="59" required>
+  Dia da semana:
+  <select id="weekday" required>
+    <option value="0">Domingo</option>
+    <option value="1">Segunda-feira</option>
+    <option value="2">Terça-feira</option>
+    <option value="3">Quarta-feira</option>
+    <option value="4">Quinta-feira</option>
+    <option value="5">Sexta-feira</option>
+    <option value="6">Sábado</option>
+  </select>
+  Melodia:
+  <select id="melody" required>
+    <option value="0">Normal</option>
+    <option value="1">Intervalo</option>
+    <option value="2">Emergência</option>
+    <option value="3">Especial</option>
+  </select>
+  <br>
+  <button type="submit">Adicionar Alarme</button>
+</form>
+
+<h2>Alarmes Salvos</h2>
+<table id="alarms-table">
+  <thead>
+    <tr>
+      <th>Hora</th>
+      <th>Minuto</th>
+      <th>Dia da Semana</th>
+      <th>Melodia</th>
+    </tr>
+  </thead>
+  <tbody>
+  </tbody>
+</table>
+
+<button onclick="clearAlarms()">Apagar Todos os Alarmes</button>
+
+<script>
+const serverUrl = window.location.origin;  // Usa o IP atual onde carregou a página
+
+function fetchAlarms() {
+  fetch(`${serverUrl}/alarms`)
+    .then(response => response.json())
+    .then(data => {
+      const table = document.querySelector("#alarms-table tbody");
+      table.innerHTML = "";
+      data.forEach(alarm => {
+        const row = table.insertRow();
+        row.insertCell(0).innerText = alarm.hour;
+        row.insertCell(1).innerText = alarm.minute;
+        row.insertCell(2).innerText = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sab"][alarm.weekday];
+        row.insertCell(3).innerText = ["Normal", "Intervalo", "Emergência", "Especial"][alarm.melody];
+      });
+    })
+    .catch(error => console.error('Erro ao buscar alarmes:', error));
+}
+
+document.getElementById("add-alarm-form").addEventListener("submit", function(event) {
+  event.preventDefault();
+
+  const alarm = {
+    hour: parseInt(document.getElementById("hour").value),
+    minute: parseInt(document.getElementById("minute").value),
+    weekday: parseInt(document.getElementById("weekday").value),
+    melody: parseInt(document.getElementById("melody").value)
+  };
+
+  fetch(`${serverUrl}/alarms`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(alarm)
+  })
+  .then(response => {
+    if (response.ok) {
+      alert("Alarme adicionado com sucesso!");
+      fetchAlarms();
+      document.getElementById("add-alarm-form").reset();
+    } else {
+      alert("Erro ao adicionar alarme.");
+    }
+  })
+  .catch(error => console.error('Erro ao adicionar alarme:', error));
+});
+
+function clearAlarms() {
+  if (!confirm("Tem certeza que deseja apagar todos os alarmes?")) return;
+
+  fetch(`${serverUrl}/alarms`, { method: "DELETE" })
+    .then(response => {
+      if (response.ok) {
+        alert("Alarmes apagados!");
+        fetchAlarms();
+      } else {
+        alert("Erro ao apagar alarmes.");
+      }
+    })
+    .catch(error => console.error('Erro ao apagar alarmes:', error));
+}
+
+// Atualiza a lista ao carregar
+fetchAlarms();
+</script>
+
+</body>
+</html>
