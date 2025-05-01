@@ -1,5 +1,8 @@
 #pragma once
 
+#include <stdbool.h>
+
+// Enum de telas
 typedef enum {
     SCREEN_MAIN,
     SCREEN_MENU,
@@ -9,15 +12,16 @@ typedef enum {
 
 void display_manager_init(void);
 void display_manager_update(void);
-void display_manager_handle_buttons(void);
 
+// Controle de tela
 void display_manager_set_screen(screen_t screen);
 screen_t display_manager_get_screen(void);
 
+// Navegação de menu
 void display_manager_next_menu(void);
 void display_manager_prev_menu(void);
+int display_manager_get_menu_index(void);
 
+// Navegação de alarmes
 void display_manager_next_alarm(void);
 void display_manager_prev_alarm(void);
-
-void display_manager_reset_navigation(void);

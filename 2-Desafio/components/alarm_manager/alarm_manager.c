@@ -1,6 +1,6 @@
 #include "alarm_manager.h"
 #include "nvs_storage.h"
-#include "buzzer.h"
+#include "buzzer_manager.h"
 #include "led_rgb.h"
 #include "ntp_manager.h"
 #include "esp_log.h"
@@ -10,6 +10,7 @@
 #include <string.h>
 
 #define CHECK_INTERVAL_MS (1000) // Verifica alarmes a cada 1 segundo
+#define BUZZER_ALARM_DURATION_MS (3000) // Duração padrão da melodia
 
 static const char *TAG = "ALARM_MANAGER";
 
@@ -49,8 +50,15 @@ static void check_alarms(void)
             alarm_list[i].weekday == now.tm_wday) {
 
             ESP_LOGI(TAG, "Alarme encontrado! Executando...");
+            
 
-            buzzer_play_melody((buzzer_melody_t)alarm_list[i].melody);
+            // Toca melodia se o buzzer estiver livre
+            if (!buzzer_manager_is_playing()) {
+                buzzer_manager_play((buzzer_melody_t)alarm_list[i].melody, BUZZER_ALARM_DURATION_MS);
+            } else {
+                ESP_LOGW(TAG, "Buzzer ocupado. Alarme não pode tocar.");
+            }
+
             led_rgb_set_color(0, 255, 0); 
             vTaskDelay(pdMS_TO_TICKS(1000));
             led_rgb_set_color(0, 0, 0);

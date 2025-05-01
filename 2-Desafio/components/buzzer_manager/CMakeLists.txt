@@ -1,0 +1,9 @@
+idf_component_register(
+    SRCS 
+        "buzzer_manager.c"
+        "buzzer_hal.c"
+    INCLUDE_DIRS 
+        "include"
+    REQUIRES 
+        driver
+)
