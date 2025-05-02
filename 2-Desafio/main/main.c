@@ -11,6 +11,7 @@
 #include "web_server.h"
 #include "esp_spiffs.h"
 #include "esp_log.h"
+#include "alarm_audio_manager.h"
 
 static const char *TAG = "MAIN";
 
@@ -68,6 +69,9 @@ void app_main(void)
     ESP_LOGI(TAG, "Inicializando Alarm Manager...");
     alarm_manager_init();
 
+    ESP_LOGI(TAG, "Inicializando alarm_audio_manager...");
+    alarm_audio_manager_init();
+
     ESP_LOGI(TAG, "Inicializando Display Manager...");
     display_manager_init();
 
@@ -81,27 +85,26 @@ void app_main(void)
 
     while (1) {
 
-        if (wifi_manager_is_connected()) {
-            if (ntp_manager_is_time_synced()) {
-                struct tm timeinfo;
-                if (ntp_manager_get_time(&timeinfo)) {
-                    ESP_LOGI(TAG, "Horário atual: %02d:%02d:%02d - Dia: %02d",
-                             timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec, timeinfo.tm_wday);
-                }
-            } else {
-                ESP_LOGI(TAG, "Aguardando sincronização do horário via NTP...");
-            }
-        } else {
-            ESP_LOGW(TAG, "Wi-Fi não conectado!");
-        }
+        // if (wifi_manager_is_connected()) {
+        //     if (ntp_manager_is_time_synced()) {
+        //         struct tm timeinfo;
+        //         if (ntp_manager_get_time(&timeinfo)) {
+        //             ESP_LOGI(TAG, "Horário atual: %02d:%02d:%02d - Dia: %02d",
+        //                      timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec, timeinfo.tm_wday);
+        //         }
+        //     } else {
+        //         ESP_LOGI(TAG, "Aguardando sincronização do horário via NTP...");
+        //     }
+        // } else {
+        //     ESP_LOGW(TAG, "Wi-Fi não conectado!");
+        // }
 
         display_manager_update();
 
         // Emergência: BT_B (GPIO_NUM_3)
-        if (button_manager_is_pressed(GPIO_NUM_3)) {
+        if (button_manager_was_pressed(GPIO_NUM_3)) {
             display_manager_set_screen(SCREEN_EMERGENCY);
-            //buzzer_manager_play(BUZZER_MELODY_ALARM, 10000);
-            buzzer_manager_play(BUZZER_MELODY_NORMAL, 10000);
+            alarm_audio_manager_play(ALARM_AUDIO_TYPE_EMERGENCY);
             vTaskDelay(pdMS_TO_TICKS(100)); // debounce
             continue;
         }
@@ -110,22 +113,22 @@ void app_main(void)
 
         switch (screen) {
             case SCREEN_MAIN:
-                if (button_manager_is_pressed(GPIO_NUM_2)) {  // BT_A = ENTER
+                if (button_manager_was_pressed(GPIO_NUM_2)) {  // BT_A = ENTER
                     display_manager_set_screen(SCREEN_MENU);
                     buzzer_manager_play(BUZZER_MELODY_BEEP, 100);
                 }
                 break;
 
             case SCREEN_MENU:
-                if (button_manager_is_pressed(GPIO_NUM_4)) { // BT_DOWN
+                if (button_manager_was_pressed(GPIO_NUM_4)) { // BT_DOWN
                     display_manager_next_menu();
                     buzzer_manager_play(BUZZER_MELODY_BEEP, 100);
                 }
-                if (button_manager_is_pressed(GPIO_NUM_7)) { // BT_UP
+                if (button_manager_was_pressed(GPIO_NUM_7)) { // BT_UP
                     display_manager_prev_menu();
                     buzzer_manager_play(BUZZER_MELODY_BEEP, 100);
                 }
-                if (button_manager_is_pressed(GPIO_NUM_2)) { // BT_A = ENTER
+                if (button_manager_was_pressed(GPIO_NUM_2)) { // BT_A = ENTER
                     if (display_manager_get_menu_index() == 0) {
                         display_manager_set_screen(SCREEN_ALARMS);
                     } else {
@@ -133,31 +136,31 @@ void app_main(void)
                     }
                     buzzer_manager_play(BUZZER_MELODY_BEEP, 100);
                 }
-                if (button_manager_is_pressed(GPIO_NUM_6)) { // BT_LEFT = VOLTAR
+                if (button_manager_was_pressed(GPIO_NUM_6)) { // BT_LEFT = VOLTAR
                     display_manager_set_screen(SCREEN_MAIN);
                     buzzer_manager_play(BUZZER_MELODY_BEEP, 100);
                 }
                 break;
 
             case SCREEN_ALARMS:
-                if (button_manager_is_pressed(GPIO_NUM_4)) { // BT_DOWN
+                if (button_manager_was_pressed(GPIO_NUM_4)) { // BT_DOWN
                     display_manager_next_alarm();
                     buzzer_manager_play(BUZZER_MELODY_BEEP, 100);
                 }
-                if (button_manager_is_pressed(GPIO_NUM_7)) { // BT_UP
+                if (button_manager_was_pressed(GPIO_NUM_7)) { // BT_UP
                     display_manager_prev_alarm();
                     buzzer_manager_play(BUZZER_MELODY_BEEP, 100);
                 }
-                if (button_manager_is_pressed(GPIO_NUM_2) || button_manager_is_pressed(GPIO_NUM_6)) {
+                if (button_manager_was_pressed(GPIO_NUM_2) || button_manager_was_pressed(GPIO_NUM_6)) {
                     display_manager_set_screen(SCREEN_MENU);
                     buzzer_manager_play(BUZZER_MELODY_BEEP, 100);
                 }
                 break;
 
             case SCREEN_EMERGENCY:
-                if (button_manager_is_pressed(GPIO_NUM_2) || button_manager_is_pressed(GPIO_NUM_6)) {
+                if (button_manager_was_pressed(GPIO_NUM_2) || button_manager_was_pressed(GPIO_NUM_6)) {
                     display_manager_set_screen(SCREEN_MAIN);
-                    buzzer_manager_stop();
+                    alarm_audio_manager_stop();
                     buzzer_manager_play(BUZZER_MELODY_BEEP, 100);
                 }
                 break;
@@ -169,5 +172,3 @@ void app_main(void)
         vTaskDelay(pdMS_TO_TICKS(50)); // Loop interval
     }
 }
-
-

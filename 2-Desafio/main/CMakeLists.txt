@@ -12,6 +12,7 @@ idf_component_register(
         nvs_storage
         web_server
         spiffs
+        alarm_audio_manager
 )
 
 spiffs_create_partition_image(spiffs ../spiffs FLASH_IN_PROJECT)

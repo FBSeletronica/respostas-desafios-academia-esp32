@@ -13,11 +13,11 @@ typedef struct {
     button_callback_t callback;
     bool last_state;
     uint32_t last_change_time;
+    bool pressed_flag;
 } button_t;
 
 static button_t buttons[MAX_BUTTONS];
 static int button_count = 0;
-static TaskHandle_t button_task_handle = NULL;
 
 static bool is_debounced_change(button_t *btn, bool current_state, uint32_t now_ms)
 {
@@ -37,9 +37,12 @@ static void button_manager_task(void *arg)
         uint32_t now = xTaskGetTickCount() * portTICK_PERIOD_MS;
         for (int i = 0; i < button_count; i++) {
             bool pressed = button_hal_is_pressed(buttons[i].gpio_num);
-            if (is_debounced_change(&buttons[i], pressed, now) && pressed) {
-                if (buttons[i].callback) {
-                    buttons[i].callback(buttons[i].gpio_num);
+            if (is_debounced_change(&buttons[i], pressed, now)) {
+                if (pressed) {
+                    buttons[i].pressed_flag = true;
+                    if (buttons[i].callback) {
+                        buttons[i].callback(buttons[i].gpio_num);
+                    }
                 }
             }
         }
@@ -51,11 +54,6 @@ esp_err_t button_manager_add_button(gpio_num_t gpio, button_pull_t pull, button_
 {
     if (button_count >= MAX_BUTTONS) return ESP_ERR_NO_MEM;
 
-    // Evita adicionar botão duplicado
-    for (int i = 0; i < button_count; i++) {
-        if (buttons[i].gpio_num == gpio) return ESP_ERR_INVALID_ARG;
-    }
-
     button_hal_configure(gpio, pull);
 
     buttons[button_count].gpio_num = gpio;
@@ -63,6 +61,7 @@ esp_err_t button_manager_add_button(gpio_num_t gpio, button_pull_t pull, button_
     buttons[button_count].callback = callback;
     buttons[button_count].last_state = false;
     buttons[button_count].last_change_time = xTaskGetTickCount() * portTICK_PERIOD_MS;
+    buttons[button_count].pressed_flag = false;
 
     button_count++;
     return ESP_OK;
@@ -70,12 +69,23 @@ esp_err_t button_manager_add_button(gpio_num_t gpio, button_pull_t pull, button_
 
 void button_manager_init(void)
 {
-    if (button_task_handle == NULL) {
-        xTaskCreate(button_manager_task, "button_manager_task", 2048, NULL, 5, &button_task_handle);
-    }
+    xTaskCreate(button_manager_task, "button_manager_task", 2048, NULL, 5, NULL);
 }
 
 bool button_manager_is_pressed(gpio_num_t gpio)
 {
     return button_hal_is_pressed(gpio);
+}
+
+bool button_manager_was_pressed(gpio_num_t gpio)
+{
+    for (int i = 0; i < button_count; i++) {
+        if (buttons[i].gpio_num == gpio) {
+            if (buttons[i].pressed_flag) {
+                buttons[i].pressed_flag = false;
+                return true;
+            }
+        }
+    }
+    return false;
 }
