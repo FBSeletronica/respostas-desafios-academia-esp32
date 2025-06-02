@@ -1,4 +1,14 @@
 dependencies:
+  fbseletronica/relay:
+    component_hash: 82e54f041f6cf96d1039c358eb38ccdf2ad3a248ff142e8d0d3e748dc2984103
+    dependencies:
+    - name: idf
+      require: private
+      version: '>=5.0.0'
+    source:
+      registry_url: https://components.espressif.com/
+      type: service
+    version: 1.0.1
   idf:
     source:
       type: idf
@@ -12,8 +22,9 @@ dependencies:
       type: git
     version: 618e681e2ee2ac3a8ebb816b17713bc23ff8ffa1
 direct_dependencies:
+- fbseletronica/relay
 - idf
 - nopnop2002/ssd1306
-manifest_hash: 54f7a344c288cb6917288c869eb7473a94707ecc27699654e9aeecb5e3749df3
+manifest_hash: 9a102b855bcdc513dab984bedfcf339403cb828bf290b76e0b6fb6404f9e45db
 target: esp32s2
 version: 2.0.0

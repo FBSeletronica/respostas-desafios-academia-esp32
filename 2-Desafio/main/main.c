@@ -85,20 +85,7 @@ void app_main(void)
 
     while (1) {
 
-        // if (wifi_manager_is_connected()) {
-        //     if (ntp_manager_is_time_synced()) {
-        //         struct tm timeinfo;
-        //         if (ntp_manager_get_time(&timeinfo)) {
-        //             ESP_LOGI(TAG, "Horário atual: %02d:%02d:%02d - Dia: %02d",
-        //                      timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec, timeinfo.tm_wday);
-        //         }
-        //     } else {
-        //         ESP_LOGI(TAG, "Aguardando sincronização do horário via NTP...");
-        //     }
-        // } else {
-        //     ESP_LOGW(TAG, "Wi-Fi não conectado!");
-        // }
-
+       
         display_manager_update();
 
         // Emergência: BT_B (GPIO_NUM_3)

@@ -1,0 +1,15 @@
+dependencies:
+  idf: '>=5.0.0'
+description: Relay control component for ESP32.
+issues: https://github.com/FBSeletronica/relay/issues
+license: Apache-2.0
+maintainers:
+- Fábio Souza
+repository: git://github.com/FBSeletronica/relay.git
+repository_info:
+  commit_sha: e911f0c5604ba606a0563c6d43e5fd8d1ed3a275
+  path: .
+tags:
+- relay
+url: https://github.com/FBSeletronica/relay
+version: 1.0.1
